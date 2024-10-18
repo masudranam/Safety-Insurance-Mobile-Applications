@@ -28,16 +28,13 @@ This repository contains the source code for the **Safety Insurance Mobile Appli
     git clone https://github.com/masudranam/Safety-Insurance-Mobile-Applications.git
     cd Safety-Insurance-Mobile-Applications
 
-    Set up the project:
-
-2. **Open the project in Android Studio:**
-    ```bash
-    Sync the Gradle files.
-    Ensure you have the required permissions (SMS, Location) enabled on your device.
+2. **Set up the project:**
+    - *Open the project in **Android Studio:***
+    - *Sync the Gradle files.*
+    - *Ensure you have the required permissions (SMS, Location) enabled on your device.*
 4. **Run the App:**
-    ```bash 
-    Connect an Android device or start an emulator.
-    Click on "Run" to install and launch the app.
+   - *Connect an Android device or start an emulator.*
+   - *Click on "Run" to install and launch the app.*
 
 ## Usage
 1. **First Time Setup:**
