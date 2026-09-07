@@ -1,72 +1,53 @@
 package com.mcubes.safety;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.ActivityManager;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.location.Address;
-import android.location.Geocoder;
-import android.location.Location;
 import android.os.Build;
-
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
 import android.os.Bundle;
-import android.os.VibrationEffect;
-import android.os.Vibrator;
-import android.telephony.SmsManager;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.tasks.OnSuccessListener;
+import androidx.annotation.NonNull;
+import androidx.annotation.StringRes;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import com.mcubes.safety.emergency.EmergencyDispatcher;
+import com.mcubes.safety.location.LocationHelper;
 import com.mcubes.safety.service.MessageService;
 
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
-    private EditText phoneNumberEditText_1,phoneNumberEditText_2,phoneNumberEditText_3,smsContentEditText;
-    FusedLocationProviderClient fusedLocationProviderClient;
-    private final static int LOCATION_PERMISSION_REQUEST_CODE = 100;
-    private static final int SMS_PERMISSION_REQUEST_CODE = 1;
+    private static final int PERMISSION_REQUEST_CODE = 100;
 
-    Button saveButton,getlocationButton,sendSMSButton;
+    private EditText phoneNumberEditText_1, phoneNumberEditText_2, phoneNumberEditText_3, smsContentEditText;
+    private Button saveButton, getlocationButton, sendSMSButton;
 
-    SharedPreferences sharedPreferences;
-
+    private SharedPreferences sharedPreferences;
 
     @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //askpermissions
-        askLocationPermission();
 
-
-        if (!isMessageServiceRunning()) {
-            Intent intent = new Intent(this, MessageService.class);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(intent);
-            }
-        }
+        askRequiredPermissions();
+        startMessageService();
 
         //phone number textEdit
-        phoneNumberEditText_1=findViewById(R.id.phone_number_edit_text_1);
-        phoneNumberEditText_2=findViewById(R.id.phone_number_edit_text_2);
-        phoneNumberEditText_3=findViewById(R.id.phone_number_edit_text_3);
+        phoneNumberEditText_1 = findViewById(R.id.phone_number_edit_text_1);
+        phoneNumberEditText_2 = findViewById(R.id.phone_number_edit_text_2);
+        phoneNumberEditText_3 = findViewById(R.id.phone_number_edit_text_3);
         smsContentEditText = findViewById(R.id.sms_content_edit_text);
 
         //button
@@ -75,20 +56,17 @@ public class MainActivity extends AppCompatActivity {
         sendSMSButton = findViewById(R.id.send_button);
 
         //initialize
-        Intent locationIntent = new Intent(MainActivity.this,GetLocationActivity.class);
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         sharedPreferences = getSharedPreferences(PreferenceKeys.PREFS_NAME, MODE_PRIVATE);
 
         saveButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                String phoneNumber1 = phoneNumberEditText_1.getText().toString();
-                String phoneNumber2 = phoneNumberEditText_2.getText().toString();
-                String phoneNumber3 = phoneNumberEditText_3.getText().toString();
-                String smsContent = smsContentEditText.getText().toString();
+                String phoneNumber1 = phoneNumberEditText_1.getText().toString().trim();
+                String phoneNumber2 = phoneNumberEditText_2.getText().toString().trim();
+                String phoneNumber3 = phoneNumberEditText_3.getText().toString().trim();
+                String smsContent = smsContentEditText.getText().toString().trim();
 
                 // Save data to SharedPreferences
-                sharedPreferences = getSharedPreferences(PreferenceKeys.PREFS_NAME, MODE_PRIVATE);
                 SharedPreferences.Editor editor = sharedPreferences.edit();
                 editor.putString(PreferenceKeys.PHONE_NUMBER_KEY_1, phoneNumber1);
                 editor.putString(PreferenceKeys.PHONE_NUMBER_KEY_2, phoneNumber2);
@@ -96,164 +74,122 @@ public class MainActivity extends AppCompatActivity {
                 editor.putString(PreferenceKeys.SMS_CONTENT_KEY, smsContent);
                 editor.apply();
 
-                Toast toast = Toast.makeText(MainActivity.this,"Saved",Toast.LENGTH_SHORT);
-                toast.setGravity(Gravity.CENTER,0,0);
-                toast.show();
+                showToast(R.string.saved);
             }
         });
 
         // show text feild
-        String savedPhoneNumber1 = sharedPreferences.getString(PreferenceKeys.PHONE_NUMBER_KEY_1,"");
-        String savedPhoneNumber2 = sharedPreferences.getString(PreferenceKeys.PHONE_NUMBER_KEY_2,"");
-        String savedPhoneNumber3 = sharedPreferences.getString(PreferenceKeys.PHONE_NUMBER_KEY_3,"");
-        String savedSmsContent = sharedPreferences.getString(PreferenceKeys.SMS_CONTENT_KEY, "");
-        phoneNumberEditText_1.setText(savedPhoneNumber1);
-        phoneNumberEditText_2.setText(savedPhoneNumber2);
-        phoneNumberEditText_3.setText(savedPhoneNumber3);
-        smsContentEditText.setText(savedSmsContent);
-
+        phoneNumberEditText_1.setText(sharedPreferences.getString(PreferenceKeys.PHONE_NUMBER_KEY_1, ""));
+        phoneNumberEditText_2.setText(sharedPreferences.getString(PreferenceKeys.PHONE_NUMBER_KEY_2, ""));
+        phoneNumberEditText_3.setText(sharedPreferences.getString(PreferenceKeys.PHONE_NUMBER_KEY_3, ""));
+        smsContentEditText.setText(sharedPreferences.getString(PreferenceKeys.SMS_CONTENT_KEY, ""));
 
         getlocationButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                getLastLocation();
-                startActivity(locationIntent);
+                if (!LocationHelper.hasLocationPermission(MainActivity.this)) {
+                    showToast(R.string.location_permission_missing);
+                    askRequiredPermissions();
+                    return;
+                }
+                getlocationButton.setEnabled(false);
+                // Open the details screen only once the fix has landed — the old code
+                // navigated immediately and showed the previous location.
+                LocationHelper.refresh(MainActivity.this, message -> {
+                    getlocationButton.setEnabled(true);
+                    startActivity(new Intent(MainActivity.this, GetLocationActivity.class));
+                });
             }
         });
 
         sendSMSButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                sharedPreferences = getSharedPreferences(PreferenceKeys.PREFS_NAME, MODE_PRIVATE);
-                // Load existing data from SharedPreferences
-                String savedPhoneNumber1 = sharedPreferences.getString(PreferenceKeys.PHONE_NUMBER_KEY_1, "");
-                String savedPhoneNumber2 = sharedPreferences.getString(PreferenceKeys.PHONE_NUMBER_KEY_2, "");
-                String savedPhoneNumber3 = sharedPreferences.getString(PreferenceKeys.PHONE_NUMBER_KEY_3, "");
-                String savedSmsContent = sharedPreferences.getString(PreferenceKeys.FULL_SMS_CONTENTS, "");
-                sendSMS(savedPhoneNumber1,savedSmsContent);
-                sendSMS(savedPhoneNumber2,savedSmsContent);
-                sendSMS(savedPhoneNumber3,savedSmsContent);
+                if (!EmergencyDispatcher.hasSmsPermission(MainActivity.this)) {
+                    showToast(R.string.sms_permission_missing);
+                    askRequiredPermissions();
+                    return;
+                }
+                if (EmergencyDispatcher.savedRecipients(MainActivity.this).isEmpty()) {
+                    showToast(R.string.no_recipients);
+                    return;
+                }
+                sendSMSButton.setEnabled(false);
+                // Send the message built from *this* fix, not the one left over from last time.
+                LocationHelper.refresh(MainActivity.this, message -> {
+                    sendSMSButton.setEnabled(true);
+                    announce(EmergencyDispatcher.sendToSavedContacts(MainActivity.this, message));
+                });
             }
         });
-
-
     }
 
+    private void startMessageService() {
+        ContextCompat.startForegroundService(this, new Intent(this, MessageService.class));
+    }
 
-
-    private void getLastLocation(){
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)== PackageManager.PERMISSION_GRANTED){
-           fusedLocationProviderClient.getLastLocation()
-                   .addOnSuccessListener(new OnSuccessListener<Location>() {
-                       @Override
-                       public void onSuccess(Location location) {
-                           if(location != null){
-                               Geocoder geocoder = new Geocoder(MainActivity.this, Locale.getDefault());
-//                               List<Address> addresses=null;
-                               try {
-                                   List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
-                                   double lattiude = addresses.get(0).getLatitude();
-                                   double longitude = addresses.get(0).getLongitude();
-                                   String city =addresses.get(0).getLocality();
-                                   String country = addresses.get(0).getCountryName();
-                                   String address= addresses.get(0).getAddressLine(0);
-
-
-
-                                   String maplink ="https://maps.google.com/?q=" + lattiude+","+longitude;
-                                   String fullLocationContents = "My Current location"+
-                                           "\nMapLink: "+maplink;
-
-
-                                   sharedPreferences = getSharedPreferences(PreferenceKeys.PREFS_NAME,MODE_PRIVATE);
-                                   String smsContent= sharedPreferences.getString(PreferenceKeys.SMS_CONTENT_KEY,"");
-                                   String fullSmsContents =smsContent+"\n"+ fullLocationContents;
-
-
-                                   SharedPreferences.Editor editor = sharedPreferences.edit();
-                                   editor.putString(PreferenceKeys.LATTITUDE_KEY, ""+lattiude);
-                                   editor.putString(PreferenceKeys.LONGITUDE_KEY, ""+longitude);
-                                   editor.putString(PreferenceKeys.CITY_KEY, city);
-                                   editor.putString(PreferenceKeys.COUNTRY_KEY, country);
-                                   editor.putString(PreferenceKeys.ADDRESS_KEY, address);
-                                   editor.putString(PreferenceKeys.MAP_LINK_KEY,maplink);
-                                   editor.putString(PreferenceKeys.FULL_LOCATION_CONTENTS,fullLocationContents);
-                                   editor.putString(PreferenceKeys.FULL_SMS_CONTENTS,fullSmsContents);
-
-                                   editor.apply();
-                               }catch (IOException e){
-                                   e.printStackTrace();
-                               }
-
-                           }
-                       }
-                   });
+    private void askRequiredPermissions() {
+        List<String> missing = new ArrayList<>();
+        addIfMissing(missing, Manifest.permission.ACCESS_FINE_LOCATION);
+        // Without this the emergency SMS throws at send time and the user finds out too late.
+        addIfMissing(missing, Manifest.permission.SEND_SMS);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            addIfMissing(missing, Manifest.permission.POST_NOTIFICATIONS);
         }
-        else {
-            askLocationPermission();
+        if (!missing.isEmpty()) {
+            ActivityCompat.requestPermissions(
+                    this, missing.toArray(new String[0]), PERMISSION_REQUEST_CODE);
         }
     }
 
-    private void askLocationPermission(){
-        ActivityCompat.requestPermissions(MainActivity.this,new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
+    private void addIfMissing(List<String> missing, String permission) {
+        if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+            missing.add(permission);
+        }
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        // LOCATION PERMISSION
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE){
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
-                getLastLocation();
-            }else {
-                Toast.makeText(MainActivity.this,"Please provide the required permission",Toast.LENGTH_SHORT).show();
-                finish();
-            }
-        }
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-    }
-    private void sendSMS(String phoneNumber, String message) {
-        try {
-            getLastLocation();
-            SmsManager smsManager = SmsManager.getDefault();
-            smsManager.sendTextMessage(phoneNumber, null, message, null, null);
-            // just vibrate the device
-            vibrateDevice();
-            //toast
-            Toast toast = Toast.makeText(MainActivity.this,"SMS send successfully",Toast.LENGTH_SHORT);
-            toast.setGravity(Gravity.CENTER,0,0);
-            toast.show();
+        if (requestCode != PERMISSION_REQUEST_CODE) {
+            return;
         }
-        catch (Exception e) {
-            e.printStackTrace();
-            Toast toast = Toast.makeText(MainActivity.this,"Permission Not Allowed",Toast.LENGTH_SHORT);
-            toast.setGravity(Gravity.CENTER,0,0);
-            toast.show();
-        }
-
-    }
-
-
-    @SuppressWarnings("deprecation")
-    public boolean isMessageServiceRunning() {
-        ActivityManager activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-        for (ActivityManager.RunningServiceInfo info : activityManager.getRunningServices(Integer.MAX_VALUE)) {
-            if (MessageService.class.getName().equals(info.service.getClassName())) {
-                return true;
+        for (int i = 0; i < permissions.length; i++) {
+            boolean granted = grantResults[i] == PackageManager.PERMISSION_GRANTED;
+            if (granted) {
+                continue;
+            }
+            // Degrade instead of quitting: an SMS without a map link is still worth sending,
+            // and a location-only setup is still worth keeping.
+            if (Manifest.permission.SEND_SMS.equals(permissions[i])) {
+                showToast(R.string.sms_permission_missing);
+            } else if (Manifest.permission.ACCESS_FINE_LOCATION.equals(permissions[i])) {
+                showToast(R.string.location_permission_missing);
             }
         }
-        return false;
     }
 
-    @SuppressLint("NewApi")
-    private void vibrateDevice() {
-        // Get the Vibrator service
-        Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
-
-        if (vibrator != null) {
-            // Vibrate for 500 milliseconds
-            vibrator.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
+    private void announce(EmergencyDispatcher.Result result) {
+        switch (result) {
+            case SENT:
+                showToast(R.string.sms_sent);
+                break;
+            case NO_RECIPIENTS:
+                showToast(R.string.no_recipients);
+                break;
+            case NO_PERMISSION:
+                showToast(R.string.sms_permission_missing);
+                break;
+            default:
+                showToast(R.string.sms_failed);
+                break;
         }
     }
 
-
+    private void showToast(@StringRes int message) {
+        Toast toast = Toast.makeText(this, message, Toast.LENGTH_SHORT);
+        toast.setGravity(Gravity.CENTER, 0, 0);
+        toast.show();
+    }
 }
