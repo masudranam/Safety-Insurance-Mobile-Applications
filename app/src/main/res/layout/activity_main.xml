@@ -115,9 +115,7 @@
             android:text="Save"
             android:textStyle="bold"
             android:textSize="24sp"
-            android:onClick="onSaveButtonClick"
-            android:layout_gravity="center"
-            tools:ignore="OnClick" />
+            android:layout_gravity="center" />
     </androidx.cardview.widget.CardView>
 
 

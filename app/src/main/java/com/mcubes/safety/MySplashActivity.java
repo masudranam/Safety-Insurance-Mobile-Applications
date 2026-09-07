@@ -28,7 +28,7 @@ public class MySplashActivity extends AppCompatActivity {
         rotateText.setAnimation(splashAnimation);
 
         // Splash Screen Toast
-        Toast toast = Toast.makeText(MySplashActivity.this,"Apps is running backround",Toast.LENGTH_SHORT);
+        Toast toast = Toast.makeText(MySplashActivity.this,R.string.splash_running_in_background,Toast.LENGTH_SHORT);
         toast.setGravity(Gravity.BOTTOM,0,0);
         toast.show();
 

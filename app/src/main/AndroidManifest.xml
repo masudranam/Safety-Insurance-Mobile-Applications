@@ -1,16 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.mcubes.safety">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.SEND_SMS"
         tools:ignore="PermissionImpliesUnsupportedChromeOsHardware" />
     <uses-permission android:name="android.permission.VIBRATE" />
-
-
 
     <application
         android:allowBackup="true"
@@ -25,7 +24,9 @@
         <activity
             android:name=".TermsAndConditionsActivity"
             android:exported="false" />
-        <activity android:name=".GetLocationActivity"/>
+        <activity
+            android:name=".GetLocationActivity"
+            android:exported="false" />
         <activity
             android:name=".MySplashActivity"
             android:exported="true">
@@ -36,20 +37,19 @@
             </intent-filter>
 
         </activity>
-        <activity android:name=".MainActivity">
-
-
-
-            <meta-data
-                android:name="android.app.lib_name"
-                android:value="" />
-        </activity>
-
+        <activity
+            android:name=".MainActivity"
+            android:exported="false" />
 
         <service
             android:name=".service.MessageService"
             android:enabled="true"
-            android:exported="false" />
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Listens for the volume-key panic gesture while the screen is off so an emergency SMS can be sent without unlocking the device." />
+        </service>
     </application>
 
 </manifest>

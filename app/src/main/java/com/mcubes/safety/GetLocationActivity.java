@@ -9,11 +9,8 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import com.google.android.gms.location.FusedLocationProviderClient;
 
 public class GetLocationActivity extends AppCompatActivity {
      TextView locationDetailsTextView;
@@ -41,7 +38,7 @@ public class GetLocationActivity extends AppCompatActivity {
                 ClipData clipData = ClipData.newPlainText("Copied Text",copyText);
                 clipboardManager.setPrimaryClip(clipData);
 
-                Toast toast = Toast.makeText(GetLocationActivity.this,"Copied",Toast.LENGTH_SHORT);
+                Toast toast = Toast.makeText(GetLocationActivity.this,R.string.copied,Toast.LENGTH_SHORT);
                 toast.setGravity(Gravity.CENTER,0,0);
                 toast.show();
             }

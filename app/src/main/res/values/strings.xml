@@ -8,7 +8,7 @@ Welcome to the Safety Insurance App ("the App"), provided by [Team17]. By using 
 Please read them carefully."\n\n"
 
 1. App Description"\n\t"
-   The Safety Insurance App is designed to enhance personal safety by allowing users to send their current location to a designated phone number in an emergency. This can be triggered by pressing the power button three times in quick succession or manually through the App."\n\n\n"
+   The Safety Insurance App is designed to enhance personal safety by allowing users to send their current location to a designated phone number in an emergency. This can be triggered by pressing the volume button three times in quick succession or manually through the App."\n\n\n"
 
 2. User Responsibilities"\n"
    By using the App, you acknowledge and agree that:"\n\t"
@@ -45,4 +45,20 @@ Last updated: Date: 23 August, 2023"\n\n"
 For any questions or concerns, please contact us at Email: anikadnanict17@gmail.com
 
 </string>
+
+    <!-- Foreground service -->
+    <string name="channel_name">Safety Insurance service</string>
+    <string name="service_notification_title">Safety Insurance App Service</string>
+    <string name="service_notification_text">Listening for the volume-button emergency trigger</string>
+    <string name="stop_alarm">Stop alarm</string>
+
+    <!-- Feedback -->
+    <string name="saved">Saved</string>
+    <string name="copied">Copied</string>
+    <string name="sms_sent">Emergency SMS sent</string>
+    <string name="sms_failed">Could not send the emergency SMS</string>
+    <string name="sms_permission_missing">SMS permission is required to send emergency alerts</string>
+    <string name="location_permission_missing">Location permission is required to share your position</string>
+    <string name="no_recipients">Save at least one emergency contact first</string>
+    <string name="splash_running_in_background">App is running in the background</string>
 </resources>
